@@ -1,0 +1,69 @@
+# JAVA-Encryption-decryption
+JAVA 加密/解密 学习笔记
+
+# 密码分类
+
+1. 对称密码 加密秘钥与解密秘钥相同
+
+2. 非对称密码 加密秘钥与解密秘钥不通，秘钥分为公钥和私钥
+
+3. 分组加密 ：明文分为固定长度的组，同一秘钥对每一块加密，输出固定长度的密文
+
+4. 流密码 ： 序列密码，对明文的的每一位或一个字节加密
+
+6. 散列函数 ： 验证数据的完整性，并不适合解密，单项函数；MD5，SHA，MAC
+
+7. 数字签名：对以数字的形式存储的消息进行处理 
+
+
+# OSI 安全体系
+
+# JAVA 安全组成
+[java安全牛人博客]http://blog.csdn.net/allenwells/article/details/46504383
+* JCA Java  Crytography Architecture
+* JCE Jvava Crytography Extension
+* JSSE Java Secure Socket Extension
+* JAAS Authentication and Authentication server
+
+1. Java.security
+* 消息摘要
+2. javax.crypto
+* 安全消息摘要，消息认证鉴别码
+3.java.net.ssl
+* 安全套接字
+
+## 第三方扩展
+
+* Bouncy Castle
+    两种支持方案： 1.配置； 2.调用
+* Commons Codec
+    1. Apache  
+    2. Base64 .二进制,十六进制 
+    
+# 1.base64应用
+# [2.消息摘要算法](https://github.com/Letitmiss/JAVA-Encryption-decryption/blob/master/blog/%E6%B6%88%E6%81%AF%E6%91%98%E8%A6%81%E7%AE%97%E6%B3%95.md)
+## Base64算法
+
+1. JDK的实现
+2. CommonsCodec
+````
+ public static  void commonsCodecBase64() {
+		byte[] encodeBytes = Base64.encodeBase64(SRC.getBytes());
+		System.out.println("encode :" + new String(encodeBytes));
+		
+		byte[] decodeBytes = Base64.decodeBase64(encodeBytes);
+		System.out.println("decode :" + new String(decodeBytes));
+	}
+````
+3. Bouncy Castle
+````
+public static void bouncyCastleBase64 () {
+		
+		byte[] encodeBytes = org.bouncycastle.util.encoders.Base64.encode(SRC.getBytes());
+		System.out.println("encode :" + new String(encodeBytes));
+		
+		byte[] decodeBytes = org.bouncycastle.util.encoders.Base64.decode(encodeBytes);
+		System.out.println("decode :" + new String(decodeBytes));
+	}
+````    
+    
