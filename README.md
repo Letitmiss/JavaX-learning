@@ -41,4 +41,19 @@ https://blog.csdn.net/IO_Field/article/details/54971679
 
 https://www.jianshu.com/p/82ed16613072
 
+# 谷歌
+https://plus.google.com/communities/104092405342699579599
+
+# 美国ID账号
+
+https://bbs.feng.com/thread-htm-fid-365.html
+
+美区ID一:（可安装小火箭 Quantumult FastSocks ）
+帐号	yeswallios1@yeah.net
+密码	Yeswall5566778899
+
+美区ID二:（可安装 小火箭 Potatso 2 FastSocks ）
+帐号	yeswalliosthe2@yeah.net
+密码	Yeswall112233
+
 
