@@ -224,5 +224,107 @@ public class Concurrency04 {
 }
 
 ```
+package daemon;
+
+/**
+ * 查看线程的状态
+ * http://www.matools.com/api/java8
+ */
+public class DaemonThread {
+
+    public static void main(String[] args) {
+
+       Thread thread  = new Thread() {
+
+           @Override
+            public void run  (){
+               try {
+
+                   Thread t11 = new Thread(() -> {
+                       try {
+                           System.out.println(Thread.currentThread().getName() + "running");
+                           Thread.sleep(1000 * 20L);
+                           System.out.println(Thread.currentThread().getName() + "done");
+                       } catch (InterruptedException e) {
+                           e.printStackTrace();
+                       }
+                   }, "1-1");
+                   //t11.setDaemon(true);
+                   t11.start();
+
+                   System.out.println(Thread.currentThread().getName()+"running");
+                   Thread.sleep(1000*10L);
+
+                   System.out.println(Thread.currentThread().getName()+"done");
+               } catch (InterruptedException e) {
+                   e.printStackTrace();
+               }
+           }
+        }; //new
+
+        //设置一个守护线程 :  守护线程是非守护线程的保姆
+        //thread.setDaemon(true);
+
+        //当jvm中的非守护线程结束的时候, 守护线程也终止结束,JVM退出, 如果jvm中有非守护线程,jvm就不能退出
+
+        /**
+         * 守护线程,代替非守护线程做事, 比如建立一个连接就立马建立一个守护线程去监听心跳, 如果连接断开的时候, 守护线程会自己退出, 辅助类的东西;
+         * 如果建立的非守护线程,主线程结束了, 监听心跳的线程还会一直存在执行jvm不会退出
+         */
+
+        thread.start(); // runnable
+
+        //runnable-->running --> dead --> block
+        try {
+            Thread.sleep(1000*5L);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println(Thread.currentThread().getName() + "stop");
+
+    }
+}
+
+/**
+ * 1. main线程已经提前执行结束了,为什么子线程还在执行, 并没有退出?
+ *  因为main和thread属于同一个threadgroup,jvm看grou中还有active的线程,所以没有退出执行
+ */
+
+
+/**
+ * 2. 守护线1中,创建一个守护线程2, 如果守护线程1结束, 守护线程2是否结束?
+ *    
+ *
+ * 3. 守护线程中创建一个非守护线程, 守护线程结束, 非守护线程能否结束退出,jvm退出?
+ *
+ */
+```
+
+package threadapi;
+
+import java.util.Optional;
+
+public class ThreadAPI {
+
+    public static void main(String[] args) {
+        Thread t1 = new Thread(() -> {
+            Optional.of("Hello").ifPresent(System.out::println);
+            try {
+                Thread.sleep(100_000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        },"t1");
+
+        t1.start();
+
+        Optional.of(t1.getName()).ifPresent(System.out::println);
+        Optional.of(t1.getId()).ifPresent(System.out::println);
+        Optional.of(t1.getPriority()).ifPresent(System.out::println);
+        //设置优先级,但是不一定按照设置的优先级别执行,优先级高获得cpu的执行权而已,开发不建议设置这个
+    }
+}
+
+```
 
 ```
