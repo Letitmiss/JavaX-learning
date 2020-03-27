@@ -517,7 +517,7 @@ public class ThreadInterrupted  {
 
     public static void main(String[] args) {
         try {
-            Thread thread = new Thread() {
+           /* Thread thread = new Thread() {
                 @Override
                 public void run () {
                     while (true) {
@@ -536,9 +536,9 @@ public class ThreadInterrupted  {
                     }
                 }
 
-            } ;
+            } ;*/
 
-           /* Thread thread = new Thread() {
+            /*Thread thread = new Thread() {
                 @Override
                 public void run () {
                     while (true) {
@@ -551,15 +551,42 @@ public class ThreadInterrupted  {
                             e.printStackTrace();
                             break;
                         }
-
                     }
                 }
 
             } ;*/
 
+            Thread thread = new Thread() {
+                @Override
+                public void run () {
+                    try {
+                        Thread t1 = new Thread(() -> {
+                            while (true) {
+                                try {
+                                    Thread.sleep(1000L);
+                                    System.out.println("running");
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+
+                        t1.setDaemon(true);
+                        t1.start();
+                        t1.join();
+                    } catch (InterruptedException e) {
+
+                        System.out.println("join线程被打断===========");
+                        e.printStackTrace();
+
+                    }
+                }
+
+            } ;
+
             thread.start();
 
-            Thread.sleep(100L);
+            Thread.sleep(1000*10L);
             //如果该线程阻塞的调用wait() ， wait(long) ，或wait(long, int)的方法Object类，
             // 或者在join() ， join(long) ， join(long, int) ， sleep(long) ，或sleep(long, int) ，
             // 这个类的方法，那么它的中断状态将被清除，并且将收到一个InterruptedException 。
@@ -574,7 +601,6 @@ public class ThreadInterrupted  {
         }
     }
 }
-
 ```
 
 
