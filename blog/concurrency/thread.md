@@ -602,5 +602,558 @@ public class ThreadInterrupted  {
     }
 }
 ```
+## 关闭线程
+
+### Flag
+
+```
+package threadapi;
+
+/**
+ * 如何关闭线程
+ * 1. 中断
+ */
+public class ThreadCloseFlag {
+
+    private static class  Worker extends Thread {
+
+        private volatile boolean start = true;
+
+        @Override
+        public void run () {
+            while (start) {
+                //todo
+                try {
+                    Thread.sleep(1000*1L);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(11);
+            }
+        }
+
+        public void shutdown() {
+            this.start = false;
+        }
+    }
+
+    public static void main(String[] args) {
+        Worker worker = new Worker();
+        worker.start();
+
+        try {
+            Thread.sleep(1000*10L);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        worker.shutdown();
+    }
+}
+```
+
+### 打断终止
+
+```
+package threadapi;
+
+import org.omg.PortableServer.THREAD_POLICY_ID;
+
+public class ThreadCloseInterrupt {
+
+    private static class  Worker extends Thread {
+
+
+        @Override
+        public void run () {
+            while (true) {
+                //todo
+                try {
+                    System.out.println(11);
+                    Thread.sleep(1000*1L);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    System.out.println("捕获");
+                    //return; //结束
+                    break; //有机会做一些事情
+                }
+                System.out.println(22);
+                
+                /*if (Thread.interrupted()) {
+                    break;
+                }*/
+
+
+            }
+            //System.out.println("break");
+        }
+
+
+    }
+
+    public static void main(String[] args) {
+       Worker worker = new Worker();
+        worker.start();
+
+        try {
+            Thread.sleep(1000*10L);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        worker.interrupt();
+    }
+}
+```
+
+## 守护线程结束退出
+
+```
+package threadapi;
+
+import java.text.BreakIterator;
+
+public class ThreadService {
+
+    private Thread executeThread;
+
+    private boolean finished = false;
+
+    public void execute(Runnable task) {
+
+        executeThread = new Thread() {
+            @Override
+            public void run () {
+                Thread taskThread = new Thread(task);
+                //taskthred是守护线程, 主线程结束之后,守护线程就会结束
+                taskThread.setDaemon(true);
+                taskThread.start();
+
+                //加入一个join等待任务线程结束,此时主线程也没有结束,守护线程当然也不会退出
+                try {
+                    taskThread.join();
+                    finished = true;
+                } catch (InterruptedException e) {
+                    System.out.println("任务超时被打断");
+                    e.printStackTrace();
+                }
+                //这种情况就是主线程jion等待守护线程结束,守护线程结束之后,主线程结束;最后都完美结束
+            }
+        };
+
+        executeThread.start();
+    }
+
+
+
+    public void shutdown(long mills) {
+        long currentTime = System.currentTimeMillis();
+        while (!finished) {
+            if (System.currentTimeMillis() - currentTime > mills) {
+                //任务超时
+                System.out.println("任务超时,需要结束");
+                executeThread.interrupt();
+                break;
+            }
+            //没有超时也没有执行结束,休眠一下
+            try {
+                System.out.println("任务还没有超时,再等1s");
+                executeThread.sleep(1000L);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                break;
+            }
+        }
+        finished = false;
+    }
+
+}
+
+
+package threadapi;
+
+/**
+ *  强制退出, 线程blocked,无法获得flag和无法中断
+ *  1.中断线程的办法, 封装一个执行线程, 用执行线程建立一个守护线程,守护线程执行任务,如果超时了,直接中断,执行线程,
+ *  守护线程就可以结束
+ */
+public class ThreadCloseForce {
+
+    public static void main(String[] args) {
+
+        ThreadService threadService = new ThreadService();
+        long start = System.currentTimeMillis();
+        threadService.execute( () -> {
+            int i = 0;
+            while (true) {
+                try {
+                    Thread.sleep(1000L);
+                    System.out.println(i+":aaaaa");
+                    i++;
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        threadService.shutdown(1000*3);
+    }
+}
+```
+
+## 异步数据共享
+
+```
+package sync;
+
+public class Bank {
+    /**
+     * 多线程数据同步问题
+     * @param args
+     *
+     * 1. 利用同步代码块及解决
+     */
+    public static void main(String[] args) {
+        /*final TicketWindowRunnable ticketWindow = new TicketWindowRunnable();
+        Thread thread1 = new Thread(ticketWindow, "1号");
+        Thread thread2 = new Thread(ticketWindow, "2号");
+        Thread thread3 = new Thread(ticketWindow, "3号");
+        thread1.start();
+        thread2.start();
+        thread3.start();*/
+
+        final SynchronizedRunnable ticketWindow = new SynchronizedRunnable();
+        Thread thread1 = new Thread(ticketWindow, "1号");
+        Thread thread2 = new Thread(ticketWindow, "2号");
+        Thread thread3 = new Thread(ticketWindow, "3号");
+        thread1.start();
+        thread2.start();
+        thread3.start();
+        /**
+         *  为什么只有2号窗口在做事?  同步方法的锁实际上是this,而且加锁的是方法不是代码块
+         *
+         *  2号拿到锁了,直接执行结束了, 1号和3号执行的时候发现index已经大于max了
+         *
+         *  实际上是同步执行了代码,
+         */
+
+
+    }
+}
+
+
+package sync;
+
+
+/**
+ * 使用一个runnable实现了,多个线程之间的使用同一份数据 一个实例的管理中心 , 将可执行单元和线程控制分离开来
+ * 1. 线程安全代码块,    关键字代码块  synchronized (MONITOR) { }
+ */
+public class TicketWindowRunnable implements Runnable {
+
+    private int index = 1 ;
+    private final int Max = 500;
+
+    private final Object MONITOR = new Object();
+    @Override
+    public void run() {
+        while (true) {
+            //代码块执行的时候变成了单线程的,会影响效率,多线程变成了单线程处理
+            synchronized (MONITOR) {
+                if (index > Max) {
+                    break;
+                }
+                try {
+                    Thread.sleep(5);
+                    System.out.println(Thread.currentThread().getName() + "current num :" + index++);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        }
+    }
+}
+
+
+
+//同步方法
+package sync;
+
+/**
+ * 同步方法,方法用Synchronized 修饰
+ * 1. 同步run方法, 实际上只有一个线程在做事
+ * 2.
+ */
+public class SynchronizedRunnable implements Runnable {
+
+    private int index = 1 ;
+    private final int Max = 500;
+
+    private final Object MONITOR = new Object();
+    @Override
+    public void run() {
+        while (true) {
+           /* //代码块执行的时候变成了单线程的,会影响效率,多线程变成了单线程处理
+            if (index > Max) {
+                System.out.println(Thread.currentThread().getName());
+                break;
+            }
+            try {
+                Thread.sleep(5);
+                System.out.println(Thread.currentThread().getName() + "current num :" + index++);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }*/
+            if (!hasTicket()) {
+                break;
+            }
+
+        }
+    }
+
+    /**
+     * v1 synchronized 加在run方法上,
+     * v2 自定义同步方法
+     */
+    private synchronized boolean hasTicket() {
+        //1.getField
+        if (index > Max) {
+            return false;
+        }
+        try {
+            Thread.sleep(5);
+            //1.get Field index
+            //2.index = inex +1
+            //3.put Field index
+            System.out.println(Thread.currentThread().getName() + "current num :" + index++);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return true;
+
+    }
+
+    /**
+     * 同步方法是this锁,也可以改写为下面这个
+     * @return
+     */
+/*
+    private  boolean hasTicket() {
+        synchronized (this) {
+            //1.getField
+            if (index > Max) {
+                return false;
+            }
+            try {
+                Thread.sleep(5);
+                //1.get Field index
+                //2.index = inex +1
+                //3.put Field index
+                System.out.println(Thread.currentThread().getName() + "current num :" + index++);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return true;
+        }
+
+    }
+*/
+
+}
+
+
+package sync;
+
+/**
+ * synchronized测试
+ * 1. 三个线程同一把锁
+ */
+public class SynchronizedTest {
+
+    private final static Object LOCK = new Object();
+
+    public static void main(String[] args) {
+           Runnable runnable = () -> {
+               synchronized (LOCK) {
+                   try {
+                       Thread.sleep(10_000);
+                       System.out.println(Thread.currentThread().getName()+"test");
+                   } catch (InterruptedException e) {
+                       e.printStackTrace();
+                   }
+               }
+           };
+
+        Thread t1 = new Thread(runnable);
+        Thread t2 = new Thread(runnable);
+        Thread t3 = new Thread(runnable);
+        long start =System.currentTimeMillis();
+        t1.start();
+        t2.start();
+        t3.start();
+
+        //不加join也是一个一个执行,但是没有顺序,  加了jion顺序执行
+        try {
+            t1.join();
+            t2.join();
+            t3.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println(System.currentTimeMillis() - start);
+        //可以通过jconsole看到,当前monitor的拥有者,只有线程1执行结束,线程2才能开始执行,变成了串行
+    }
+}
+
+
+//静态方法锁
+
+package sync;
+
+/**
+ * 静态方法锁  synchronized 修饰静态方法代表是 class
+ */
+public class SynchronizedStatic {
+
+    public synchronized static void m1 () {
+        try {
+            System.out.println("m1"  + Thread.currentThread().getName());
+            Thread.sleep(5_000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void m2 () {
+        synchronized(SynchronizedStatic.class) {
+            try {
+                System.out.println("m2"  + Thread.currentThread().getName());
+                Thread.sleep(5_000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+
+package sync;
+
+public class SynchronizedStaicTest {
+
+    public static void main(String[] args) {
+
+        new Thread("t1") {
+            @Override
+            public void run () {
+                SynchronizedStatic.m1();
+            }
+
+        }.start();
+
+        new Thread("t2") {
+            @Override
+            public void run () {
+                SynchronizedStatic.m2();
+            }
+
+        }.start();
+    }
+}
+
+```
+
+# 死锁
+
+
+```
+package DeadLock;
+
+public class DeadLock {
+
+
+    private OtherService  otherService;
+
+    private final Object LOCK = new Object();
+
+    public DeadLock(OtherService otherService) {
+        this.otherService = otherService;
+    }
+
+    public void m1 () {
+        synchronized (LOCK) {
+            System.out.println("m1" + Thread.currentThread().getName());
+            otherService.s1();
+        }
+
+    }
+
+    public void m2 () {
+        synchronized (LOCK) {
+            System.out.println("m2" + Thread.currentThread().getName());
+        }
+    }
+}
+
+
+package DeadLock;
+
+public class OtherService {
+
+    private final Object LOCK2 = new Object();
+
+    private DeadLock deadLock;
+
+    public void setDeadLock(DeadLock deadLock) {
+        this.deadLock = deadLock;
+    }
+
+    public void s1() {
+        synchronized (LOCK2) {
+            System.out.println("s1" + Thread.currentThread().getName());
+        }
+    }
+
+    public void s2() {
+        synchronized (LOCK2) {
+           deadLock.m2();
+        }
+    }
+}
+
+
+package DeadLock;
+
+public class DeadLockTest {
+
+    public static void main(String[] args) {
+        OtherService otherService = new OtherService();
+        DeadLock deadLock = new DeadLock(otherService);
+        otherService.setDeadLock(deadLock);
+
+        new Thread("T1") {
+            @Override
+            public void run () {
+                while (true) {
+                    deadLock.m1();
+                }
+            }
+        }.start();
+
+        new Thread("T2") {
+            @Override
+            public  void  run () {
+                while (true) {
+                    otherService.s2();
+                }
+            }
+        }.start();
+
+    }
+}
+
+```
+
+
 
 
