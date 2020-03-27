@@ -1152,6 +1152,8 @@ public class DeadLockTest {
     }
 }
 
+通过jps  就stack查看进程是不是有死锁
+
 ```
 
 
