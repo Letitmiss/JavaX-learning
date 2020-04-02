@@ -179,5 +179,193 @@ public class ThreadLocalSimulaorTest {
 # ThreadLocal实现Context上下文
 
 ```
+package ThreadLocalCase;
+
+public class Context {
+
+    private String name;
+    private String card;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setCard(String card) {
+        this.card = card;
+    }
+
+    public String getCard() {
+        return card;
+    }
+}
+
+package ThreadLocalCase;
+
+/**
+ * Context上下文对象,下一部分,需要上一部分的部分数据,需要传递上下对象
+ */
+public class ExecutionTask implements Runnable {
+
+    private QueryFromDBAction queryAction =  new QueryFromDBAction();
+
+    private QueryFromHttpAction queryFromHttpAction = new QueryFromHttpAction();
+
+    @Override
+    public void run() {
+        Context context = new Context();
+        queryAction.execute(context);
+        queryFromHttpAction.execute(context);
+        System.out.println("The name: "+context.getName()+",the card: "+ context.getCard());
+    }
+}
+
+
+package ThreadLocalCase;
+
+public class QueryFromDBAction {
+
+    public void  execute(Context context) {
+
+        try {
+            Thread.sleep(1000L);
+            String name = Thread.currentThread().getName()+"-tom";
+            context.setName(name);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void  execute() {
+
+        try {
+            Thread.sleep(1000L);
+            String name = Thread.currentThread().getName()+"-tom";
+            ActionContext.getActionContext().getContext().setName(name);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+    }
+}
+
+
+package ThreadLocalCase;
+
+public class QueryFromHttpAction {
+
+    public void execute (Context context) {
+
+        try {
+            Thread.sleep(1000L);
+            String name = context.getName();
+            String card = getCard(name);
+            context.setCard(card);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void execute () {
+
+        try {
+            Thread.sleep(1000L);
+            String name = ActionContext.getActionContext().getContext().getName();
+            String card = getCard(name);
+            ActionContext.getActionContext().getContext().setCard(card);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private String getCard(String name) {
+
+        try {
+            Thread.sleep(2_000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return "12345667-"+ Thread.currentThread().getName();
+    }
+}
+
+```
+
+## 改造Context
+
+```
+package ThreadLocalCase;
+
+public class ActionContext {
+
+    private static final ThreadLocal<Context> THREAD_LOCAL = new ThreadLocal<Context>() {
+        @Override
+        protected Context initialValue() {
+            return new Context();
+        }
+    };
+
+    private static class InstanceHolder {
+       private final static ActionContext ACTION_CONTEXT = new ActionContext();
+    }
+
+    public static ActionContext getActionContext() {
+        return InstanceHolder.ACTION_CONTEXT;
+    }
+
+    public Context getContext() {
+        return THREAD_LOCAL.get();
+    }
+}
+
+package ThreadLocalCase;
+
+/**
+ * Context上下文对象,下一部分,需要上一部分的部分数据,需要传递上下对象
+ */
+public class ExecutionTask implements Runnable {
+
+    private QueryFromDBAction queryAction =  new QueryFromDBAction();
+
+    private QueryFromHttpAction queryFromHttpAction = new QueryFromHttpAction();
+
+   /* @Override
+    public void run() {
+        Context context = new Context();
+        queryAction.execute(context);
+        queryFromHttpAction.execute(context);
+        System.out.println("The name: "+context.getName()+",the card: "+ context.getCard());
+    }*/
+
+    @Override
+    public void run() {
+        queryAction.execute();
+        queryFromHttpAction.execute();
+        System.out.println("The name: " + ActionContext.getActionContext().getContext().getName() +
+                ",the card: " + ActionContext.getActionContext().getContext().getCard());
+    }
+}
+
+
+package ThreadLocalCase;
+
+import java.util.stream.IntStream;
+
+public class ContextTest {
+
+    public static void main(String[] args) {
+
+        IntStream.rangeClosed(1,5).forEach( i -> {
+            new Thread(new ExecutionTask()).start();
+        });
+    }
+}
+
 
 ```
