@@ -1156,6 +1156,35 @@ public class DeadLockTest {
 
 ```
 
+## 线程异常
+
+```
+package ThreadException;
+
+/**
+ *  线程里面是无法抛出异常的, 线程在main里面启动, 线程是无法抛出异常
+ *
+ *   在线程外知道线程异常
+ */
+
+public class ThreadException {
+
+    private final static int A = 10;
+    private final static int B = 0;
+
+    public static void main(String[] args) {
+        Thread thread = new Thread(() -> {
+            try {
+                Thread.sleep(5_000);
+                //这里是重写run方法, run方法是无法抛出异常的
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+}
+
+```
 
 
 
