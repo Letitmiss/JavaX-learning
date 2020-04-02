@@ -8,7 +8,7 @@ package Volatile;
  */
 public class VolatileTest {
 
-    private  static int INIT_VALUE = 0;
+    private  volatile static int INIT_VALUE = 0;
     private final static int MAX = 5;
 
     public static void main(String[] args) {
@@ -41,7 +41,6 @@ public class VolatileTest {
     }
 }
 
-
 package Volatile;
 
 /**
@@ -63,10 +62,10 @@ package Volatile;
 public class VolatileTest2 {
 
     private static int INIT_VALUE = 0;
-    private final static int MAX = 5;
+    private final static int MAX = 1000;
 
     public static void main(String[] args) throws InterruptedException {
-        //T1有写数据操作,所以会更新主内存中的值,读取也会从主内存读取数据
+        //没有volatile修饰的时候, T1有写数据操作,所以会更新主内存中的值,读取也会从主内存读取数据
         new Thread( () -> {
             while (INIT_VALUE < MAX) {
                 System.out.println( "T1->" + (++INIT_VALUE));
@@ -92,6 +91,7 @@ public class VolatileTest2 {
         },"T2").start();
     }
 }
+
 
 
 
